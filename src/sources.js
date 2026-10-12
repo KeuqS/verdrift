@@ -465,7 +465,10 @@ export function extractorFor(path) {
   if (base === "package.json") return packageJson;
   if (base === "pyproject.toml") return pyprojectToml;
   if (base === "go.mod") return goMod;
-  if (/^(Dockerfile|Containerfile)(\..+)?$/.test(base) || /\.(Dockerfile|dockerfile)$/.test(base)) return dockerfile;
+  if (/^(Dockerfile|Containerfile)(\..+)?$/.test(base) || /\.(Dockerfile|dockerfile)$/.test(base)) {
+    // Dockerfile.dev and Dockerfile.prod are Dockerfiles; Dockerfile.ts or Dockerfile.md are not.
+    return /\.(md|txt|[cm]?[jt]sx?|py|go|rs|json|ya?ml|toml|sh|bak|orig|swp)$/i.test(base) ? null : dockerfile;
+  }
   if (/^(docker-)?compose(\.[\w.-]+)?\.ya?ml$/.test(base)) return composeFile;
   if (base === ".gitlab-ci.yml") return gitlabCi;
   if (/(^|\/)\.github\/workflows\/[^/]+\.ya?ml$/.test(path)) return githubWorkflow;
