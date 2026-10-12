@@ -26,7 +26,7 @@ export function scan(root, options = {}) {
     const extract = /** @type {NonNullable<ReturnType<typeof extractorFor>>} */ (extractorFor(file));
     let text;
     try {
-      text = readFileSync(join(root, file), "utf8");
+      text = readFileSync(join(root, file), "utf8").replace(/^\uFEFF/, "");
     } catch {
       continue; // tracked but deleted from the work tree
     }

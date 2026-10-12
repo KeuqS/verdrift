@@ -31,8 +31,25 @@ export function pinPriority(d) {
   if (d.where === "") return 0; // single-purpose version file
   if (base === ".tool-versions" || base.includes("mise")) return 1;
   if (d.where === "volta.node" || d.where === "toolchain") return 2;
-  if (d.file.startsWith(".github/") || base === ".gitlab-ci.yml") return 4;
   return 3;
+}
+
+/** Directory a declaration speaks for: CI config describes the whole repo. @param {Declaration} d */
+function dirOf(d) {
+  if (d.role === "ci") return "";
+  const slash = d.file.lastIndexOf("/");
+  return slash === -1 ? "" : d.file.slice(0, slash);
+}
+
+/**
+ * A range (engines, requires-python, go.mod) speaks for its own directory tree, so a nested
+ * package's engines.node is not applied to an unrelated Dockerfile elsewhere in a monorepo.
+ * @param {Declaration} range @param {Declaration} d
+ */
+function applies(range, d) {
+  const dir = dirOf(range);
+  const other = dirOf(d);
+  return dir === "" || other === dir || other.startsWith(`${dir}/`);
 }
 
 /**
@@ -45,11 +62,16 @@ export function findConflicts(declarations) {
   for (const runtime of RUNTIMES) {
     const usable = /** @type {Resolved[]} */ (declarations.filter((d) => d.runtime === runtime && d.set !== null));
     const ranges = usable.filter((d) => d.role === "range");
-    const pins = usable.filter((d) => d.role === "pin").sort((a, b) => pinPriority(a) - pinPriority(b));
-    const matrix = usable.filter((d) => d.role === "matrix");
+    const depth = (/** @type {Declaration} */ d) => d.file.split("/").length;
+    const pins = usable
+      .filter((d) => d.role === "pin")
+      .sort((a, b) => pinPriority(a) - pinPriority(b) || depth(a) - depth(b));
+    const ci = usable.filter((d) => d.role === "ci");
 
     ranges.forEach((r, i) => {
-      const other = ranges.slice(0, i).find((prev) => !overlaps(prev.set, r.set));
+      const other = ranges
+        .slice(0, i)
+        .find((prev) => (applies(prev, r) || applies(r, prev)) && !overlaps(prev.set, r.set));
       if (other) {
         problems.push({
           rule: "range-conflict",
@@ -62,8 +84,8 @@ export function findConflicts(declarations) {
       }
     });
 
-    for (const d of [...pins, ...matrix]) {
-      const range = ranges.find((r) => !overlaps(r.set, d.set));
+    for (const d of [...pins, ...ci]) {
+      const range = ranges.find((r) => applies(r, d) && !overlaps(r.set, d.set));
       if (range) {
         problems.push({
           rule: "outside-range",

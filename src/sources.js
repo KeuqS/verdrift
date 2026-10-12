@@ -11,8 +11,8 @@ import { parseNpmRange, parsePep440 } from "./versions.js";
 /**
  * pin:    "this exact release line is used here" (version files, images, a single CI version)
  * range:  "any version in this range is supported" (engines, requires-python, go.mod `go`)
- * matrix: "CI tests each of these" (only checked against ranges, not against pins)
- * @typedef {"pin" | "range" | "matrix"} Role
+ * ci:     "CI runs this version" (only checked against ranges: CI jobs often pick versions on purpose)
+ * @typedef {"pin" | "range" | "ci"} Role
  */
 /**
  * @typedef {object} Declaration
@@ -284,16 +284,19 @@ function dockerfile(c, file, text) {
         );
       continue;
     }
-    addImage(c, file, startLine, `FROM ${image}`, image);
+    addImage(c, file, startLine, `FROM ${image}`, image, "pin");
   }
 }
 
-/** @param {Collector} c @param {string} file @param {number} line @param {string} where @param {string} image */
-function addImage(c, file, line, where, image) {
+/**
+ * @param {Collector} c @param {string} file @param {number} line @param {string} where @param {string} image
+ * @param {Role} role
+ */
+function addImage(c, file, line, where, image, role) {
   const found = interpretImage(image);
   if (!found) return;
   const tag = image.split("@")[0].split("/").pop()?.split(":")[1] ?? "";
-  c.add({ runtime: found.runtime, file, line, where, raw: tag || image, role: "pin" }, found);
+  c.add({ runtime: found.runtime, file, line, where, raw: tag || image, role }, found);
 }
 
 // ---------------------------------------------------------------- YAML-based files
@@ -320,7 +323,7 @@ function composeFile(c, file, text) {
   for (const pair of services.items) {
     const image = get(pair.value, "image");
     if (isScalar(image) && typeof image.value === "string") {
-      addImage(c, file, lineOf(image), `services.${String(pair.key)}.image`, image.value);
+      addImage(c, file, lineOf(image), `services.${String(pair.key)}.image`, image.value, "pin");
     }
   }
 }
@@ -332,7 +335,7 @@ function gitlabCi(c, file, text) {
   /** @param {any} node @param {string} where */
   const visitImage = (node, where) => {
     const image = isMap(node) ? get(node, "name") : node;
-    if (isScalar(image) && typeof image.value === "string") addImage(c, file, lineOf(image), where, image.value);
+    if (isScalar(image) && typeof image.value === "string") addImage(c, file, lineOf(image), where, image.value, "ci");
   };
   for (const pair of doc.contents.items) {
     const key = String(isScalar(pair.key) ? pair.key.value : pair.key);
@@ -363,7 +366,7 @@ function githubWorkflow(c, file, text) {
     const container = get(job, "container");
     const containerImage = isMap(container) ? get(container, "image") : container;
     if (isScalar(containerImage) && typeof containerImage.value === "string") {
-      addImage(c, file, lineOf(containerImage), `jobs.${jobName}.container`, containerImage.value);
+      addImage(c, file, lineOf(containerImage), `jobs.${jobName}.container`, containerImage.value, "ci");
     }
 
     const steps = get(job, "steps");
@@ -380,16 +383,16 @@ function githubWorkflow(c, file, text) {
 
       const matrixRef = /^\$\{\{\s*matrix\.([\w-]+)\s*\}\}$/.exec(String(input.value).trim());
       if (!matrixRef) {
-        addScalar(c, file, lineOf, input, action.runtime, `${short} ${action.input}`, "pin");
+        addScalar(c, file, lineOf, input, action.runtime, `${short} ${action.input}`);
         continue;
       }
       const key = matrixRef[1];
       const where = `${short} matrix.${key}`;
       const nodes = matrixValues(get(get(job, "strategy"), "matrix"), key);
-      for (const node of nodes) addScalar(c, file, lineOf, node, action.runtime, where, "matrix");
+      for (const node of nodes) addScalar(c, file, lineOf, node, action.runtime, where);
       if (nodes.length === 0) {
         c.add(
-          { runtime: action.runtime, file, line: lineOf(input), where, raw: String(input.value), role: "matrix" },
+          { runtime: action.runtime, file, line: lineOf(input), where, raw: String(input.value), role: "ci" },
           { skip: `jobs.${jobName} has no literal list for matrix.${key}` },
         );
       }
@@ -416,9 +419,9 @@ function matrixValues(matrix, key) {
  * One version input or matrix entry. A YAML number that changes meaning when parsed
  * (`3.10` becomes 3.1) is reported as its own problem instead of being interpreted.
  * @param {Collector} c @param {string} file @param {(n: any) => number} lineOf @param {any} node
- * @param {Runtime} runtime @param {string} where @param {Role} role
+ * @param {Runtime} runtime @param {string} where
  */
-function addScalar(c, file, lineOf, node, runtime, where, role) {
+function addScalar(c, file, lineOf, node, runtime, where) {
   const line = lineOf(node);
   const value = String(node.value);
   const written = node.source ?? value;
@@ -431,20 +434,17 @@ function addScalar(c, file, lineOf, node, runtime, where, role) {
       value: written,
       message: `${runtime} ${written} (${where}) is a YAML number, so the action receives "${value}". Quote it: '${written}'`,
     });
-    c.add({ runtime, file, line, where, raw: written, role }, { skip: "unquoted YAML number, see problem" });
+    c.add({ runtime, file, line, where, raw: written, role: "ci" }, { skip: "unquoted YAML number, see problem" });
     return;
   }
   if (value.includes("${{")) {
-    c.add({ runtime, file, line, where, raw: value, role }, { skip: "value comes from a workflow expression" });
+    c.add({ runtime, file, line, where, raw: value, role: "ci" }, { skip: "value comes from a workflow expression" });
     return;
   }
   // setup-python and setup-node accept several versions, one per line.
   const values = value.split(/\r?\n/).filter((v) => v.trim());
   for (const v of values) {
-    c.add(
-      { runtime, file, line, where, raw: v.trim(), role: values.length > 1 ? "matrix" : role },
-      interpretVersion(runtime, v),
-    );
+    c.add({ runtime, file, line, where, raw: v.trim(), role: "ci" }, interpretVersion(runtime, v));
   }
 }
 

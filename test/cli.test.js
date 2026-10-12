@@ -81,6 +81,12 @@ test("a malformed file is a warning, not a crash", () => {
   assert.match(stdout, /! package.json: could not parse/);
 });
 
+test("a UTF-8 byte order mark does not break JSON parsing", () => {
+  const { code, stdout } = run([makeRepo({ "package.json": '\uFEFF{"engines":{"node":">=20"}}' })]);
+  assert.equal(code, 0);
+  assert.doesNotMatch(stdout, /could not parse/);
+});
+
 test("usage errors exit 2", () => {
   assert.equal(run(["--format", "xml"]).code, 2);
   assert.equal(run(["--nope"]).code, 2);

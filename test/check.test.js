@@ -60,7 +60,7 @@ test("pins and matrix entries outside a range are reported", () => {
   assert.match(problems[0].message, /FROM golang:1.21-alpine is outside "1.22" \(go.mod:3 go directive\)/);
 });
 
-test("matrix entries are not compared with pins", () => {
+test("CI versions are not compared with pins", () => {
   const problems = findConflicts(
     declarationsOf({
       ".nvmrc": "22\n",
@@ -69,6 +69,36 @@ test("matrix entries are not compared with pins", () => {
     }),
   );
   assert.deepEqual(problems, []);
+});
+
+test("CI jobs that pick different versions on purpose do not conflict with each other", () => {
+  const problems = findConflicts(
+    declarationsOf({
+      ".github/workflows/a.yml":
+        "jobs:\n  t:\n    steps:\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.13'\n",
+      ".github/workflows/b.yml":
+        "jobs:\n  t:\n    steps:\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.10'\n",
+    }),
+  );
+  assert.deepEqual(problems, []);
+});
+
+test("a nested package's range only applies inside its own directory", () => {
+  const problems = findConflicts(
+    declarationsOf({
+      "package.json": '{"engines":{"node":">=18"}}',
+      "packages/modern/package.json": '{"engines":{"node":">=22"}}',
+      "packages/modern/Dockerfile": "FROM node:20\n",
+      "tools/legacy/Dockerfile": "FROM node:18\n",
+      ".github/workflows/ci.yml":
+        "jobs:\n  t:\n    steps:\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '18'\n",
+    }),
+  );
+  // packages/modern/Dockerfile violates its own package's range; tools/ and CI are only bound by the root range.
+  assert.deepEqual(
+    rules(problems).filter((r) => r.startsWith("outside-range")),
+    ["outside-range packages/modern/Dockerfile:1"],
+  );
 });
 
 test("ranges with no common version conflict", () => {

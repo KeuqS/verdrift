@@ -139,9 +139,9 @@ test("compose: service images", () => {
 test("GitLab CI: global, default, and job images", () => {
   const text = "image: python:3.12\ndefault:\n  image: python:3.11\ntest:\n  image:\n    name: node:20\n";
   assert.deepEqual(summarize(extract(".gitlab-ci.yml", text).declarations), [
-    "python pin 3.12 @1",
-    "python pin 3.11 @3",
-    "node pin 20 @6",
+    "python ci 3.12 @1",
+    "python ci 3.11 @3",
+    "node ci 20 @6",
   ]);
 });
 
@@ -179,14 +179,14 @@ jobs:
 test("GitHub workflow: container, matrix (with include), literal inputs, expressions, multi-line", () => {
   const c = extract(".github/workflows/ci.yml", WORKFLOW);
   assert.deepEqual(summarize(c.declarations), [
-    "node pin 22-bookworm @6",
-    "node matrix 20 @9",
-    "node matrix 22 @9",
-    "node matrix 24 @11",
-    "python pin 3.12 @18",
-    "go pin ${{ env.GO }} @21 skip",
-    "python matrix 3.11 @27",
-    "python matrix 3.12 @27",
+    "node ci 22-bookworm @6",
+    "node ci 20 @9",
+    "node ci 22 @9",
+    "node ci 24 @11",
+    "python ci 3.12 @18",
+    "go ci ${{ env.GO }} @21 skip",
+    "python ci 3.11 @27",
+    "python ci 3.12 @27",
   ]);
   assert.equal(c.problems.length, 0);
 });
@@ -212,9 +212,9 @@ test("GitHub workflow: unquoted 3.10 is reported once and not interpreted as 3.1
   );
   assert.match(c.problems[0].message, /receives "3.1"/);
   assert.deepEqual(summarize(c.declarations), [
-    "python matrix 3.9 @5",
-    "python matrix 3.10 @5 skip",
-    "python pin 3.10 @12 skip",
+    "python ci 3.9 @5",
+    "python ci 3.10 @5 skip",
+    "python ci 3.10 @12 skip",
   ]);
 });
 
@@ -229,5 +229,5 @@ test("GitHub workflow: matrix reference without a literal list is skipped, not d
           node-version: \${{ matrix.node }}
 `;
   const d = extract(".github/workflows/ci.yml", text).declarations;
-  assert.deepEqual(summarize(d), ["node matrix ${{ matrix.node }} @8 skip"]);
+  assert.deepEqual(summarize(d), ["node ci ${{ matrix.node }} @8 skip"]);
 });
