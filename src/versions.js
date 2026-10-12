@@ -59,10 +59,10 @@ export function prefixSet(parts) {
 }
 
 /** @type {VersionSet} */
-export const ANY = [{ lo: ZERO, hi: null }];
+const ANY = [{ lo: ZERO, hi: null }];
 
 /** @param {VersionSet} a @param {VersionSet} b @returns {VersionSet} */
-export function intersect(a, b) {
+function intersect(a, b) {
   /** @type {VersionSet} */
   const out = [];
   for (const x of a) {
@@ -76,7 +76,7 @@ export function intersect(a, b) {
 }
 
 /** @param {VersionSet} a @param {VersionSet} b @returns {VersionSet} */
-export function union(a, b) {
+function union(a, b) {
   return normalize([...a, ...b]);
 }
 
@@ -267,9 +267,4 @@ function complement(set) {
   }
   if (cursor !== null) out.push({ lo: cursor, hi: null });
   return out;
-}
-
-/** "20.11.1" from [20, 11, 1]. @param {Version} v */
-export function formatVersion(v) {
-  return v.join(".");
 }
