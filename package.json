@@ -2,6 +2,23 @@
   "name": "verdrift",
   "version": "0.1.0",
   "description": "Find every place your repo pins a Node, Python, or Go version, and see where they disagree.",
+  "keywords": [
+    "version",
+    "drift",
+    "nvmrc",
+    "dockerfile",
+    "github-actions",
+    "python",
+    "golang",
+    "ci",
+    "lint"
+  ],
+  "homepage": "https://github.com/thanatchon36/verdrift#readme",
+  "bugs": "https://github.com/thanatchon36/verdrift/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thanatchon36/verdrift.git"
+  },
   "license": "MIT",
   "type": "module",
   "bin": {

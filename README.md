@@ -124,8 +124,8 @@ skipped with the reason, never silently dropped. Named LTS aliases like `lts/iro
 - run: npx --yes github:thanatchon36/verdrift#v0.1.0 --format github
 ```
 
-`--format github` turns each problem into an annotation on the offending line of the pull
-request. Pin the tag (`#v0.1.0`) so a new release can't change your CI unexpectedly.
+`--format github` turns each problem into a workflow annotation that points at the offending file
+and line. Pin the tag (`#v0.1.0`) so a new release can't change your CI unexpectedly.
 
 ## Options
 
