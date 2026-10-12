@@ -22,14 +22,24 @@ const PROBES = {
 };
 
 /**
+ * Run from the scanned directory so version-manager shims (asdf, mise, volta) resolve as they
+ * would for a developer there. GOTOOLCHAIN=local stops `go version` from downloading the
+ * toolchain named in go.mod and reporting that instead of what is installed.
  * @param {Runtime} runtime
+ * @param {string} cwd
  * @returns {{ version: string, command: string } | null}
  */
-export function installedVersion(runtime) {
+export function installedVersion(runtime, cwd) {
   const probe = PROBES[runtime];
   for (const [cmd, ...args] of probe.commands) {
     try {
-      const out = execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 10_000 });
+      const out = execFileSync(cmd, args, {
+        cwd,
+        encoding: "utf8",
+        env: { ...process.env, GOTOOLCHAIN: "local" },
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: 10_000,
+      });
       const m = probe.pattern.exec(out);
       if (m) return { version: m[1], command: cmd };
     } catch {
@@ -44,7 +54,7 @@ export function installedVersion(runtime) {
  * @param {(runtime: Runtime) => { version: string, command: string } | null} probe
  * @returns {{ installed: { runtime: Runtime, version: string | null, command: string | null }[], problems: Problem[] }}
  */
-export function checkLocal(declarations, probe = installedVersion) {
+export function checkLocal(declarations, probe) {
   /** @type {Problem[]} */
   const problems = [];
   const installed = [];

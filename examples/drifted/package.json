@@ -1,0 +1,7 @@
+{
+  "name": "drifted-app",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

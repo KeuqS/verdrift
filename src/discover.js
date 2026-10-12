@@ -38,7 +38,19 @@ export function discoverFiles(root, ignore) {
 /** @param {string} root @returns {string[] | null} */
 function gitFiles(root) {
   try {
-    const out = execFileSync("git", ["-C", root, "ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
+    // core.fsmonitor from an untrusted repo's config could run a command; turn it off.
+    const args = [
+      "-c",
+      "core.fsmonitor=false",
+      "-C",
+      root,
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+    ];
+    const out = execFileSync("git", args, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
       maxBuffer: 256 * 1024 * 1024,

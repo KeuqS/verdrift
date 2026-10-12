@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findConflicts } from "./check.js";
 import { discoverFiles } from "./discover.js";
-import { checkLocal } from "./local.js";
+import { checkLocal, installedVersion } from "./local.js";
 import { Collector, extractorFor } from "./sources.js";
 
 /**
@@ -39,7 +39,7 @@ export function scan(root, options = {}) {
   const problems = [...c.problems, ...findConflicts(c.declarations)];
   let installed = null;
   if (options.local) {
-    const local = checkLocal(c.declarations, options.probe);
+    const local = checkLocal(c.declarations, options.probe ?? ((runtime) => installedVersion(runtime, root)));
     installed = local.installed;
     problems.push(...local.problems);
   }
