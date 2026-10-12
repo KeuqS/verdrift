@@ -1,0 +1,30 @@
+{
+  "name": "verdrift",
+  "version": "0.1.0",
+  "description": "Find every place your repo pins a Node, Python, or Go version, and see where they disagree.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "verdrift": "bin/verdrift.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "biome ci . && tsc"
+  },
+  "dependencies": {
+    "smol-toml": "1.9.0",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/node": "24.19.0",
+    "typescript": "7.0.2"
+  }
+}
