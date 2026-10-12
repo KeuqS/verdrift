@@ -246,7 +246,7 @@ function setupCfg(c, file, text) {
     }
     if (section !== "options") continue;
     const valueMatch = /^\s*python_requires\s*=\s*(.*?)\s*$/.exec(rawLine);
-    if (!valueMatch || !valueMatch[1]) continue;
+    if (!valueMatch?.[1]) continue;
     const raw = valueMatch[1];
     c.add(
       { runtime: "python", file, line: i + 1, where: "options.python_requires", raw, role: "range" },

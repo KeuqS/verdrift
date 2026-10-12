@@ -105,10 +105,7 @@ test("setup.cfg: python_requires in [options]", () => {
 });
 
 test("setup.cfg: missing or unparseable python_requires", () => {
-  assert.deepEqual(
-    extract("setup.cfg", "[metadata]\npython_requires = >=3.9\n").declarations,
-    [],
-  );
+  assert.deepEqual(extract("setup.cfg", "[metadata]\npython_requires = >=3.9\n").declarations, []);
   const declaration = extract("setup.cfg", "[options]\npython_requires = any\n").declarations[0];
   assert.equal(declaration.set, null);
   assert.match(declaration.skip ?? "", /could not parse/);
