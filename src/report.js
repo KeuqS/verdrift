@@ -22,11 +22,15 @@ export function formatText(result, { color }) {
     result.problems.some((p) => p.file === d.file && p.line === d.line && (p.value === undefined || p.value === d.raw));
 
   for (const runtime of RUNTIMES) {
-    const decls = result.declarations.filter((d) => d.runtime === runtime);
+    // Ranges and pins first: they are what the CI entries below are checked against.
+    const order = { range: 0, pin: 1, ci: 2 };
+    const decls = result.declarations
+      .filter((d) => d.runtime === runtime)
+      .sort((a, b) => order[a.role] - order[b.role]);
     if (decls.length === 0) continue;
     out.push(c.bold(runtime));
     const rows = decls.map((d) => [`${d.file}:${d.line}`, d.where, d.role, d.raw]);
-    const widths = [0, 1].map((i) => Math.min(48, Math.max(...rows.map((r) => r[i].length))));
+    const widths = [0, 1].map((i) => Math.max(...rows.map((r) => r[i].length)));
     decls.forEach((d, i) => {
       const [loc, where, role, raw] = rows[i];
       const mark = hasProblem(d) ? c.red("✗") : " ";
@@ -56,7 +60,7 @@ export function formatText(result, { color }) {
   } else {
     out.push(c.red(c.bold(`${plural(result.problems.length, "problem")}`)));
     const locs = result.problems.map((p) => (p.line ? `${p.file}:${p.line}` : p.file));
-    const width = Math.min(48, Math.max(...locs.map((l) => l.length)));
+    const width = Math.max(...locs.map((l) => l.length));
     result.problems.forEach((p, i) => {
       out.push(`${c.red("✗")} ${locs[i].padEnd(width)}  ${p.message}  ${c.dim(p.rule)}`);
     });

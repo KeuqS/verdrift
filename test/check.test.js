@@ -57,7 +57,7 @@ test("pins and matrix entries outside a range are reported", () => {
     }),
   );
   assert.deepEqual(rules(problems), ["outside-range Dockerfile:1", "outside-range .github/workflows/ci.yml:5"]);
-  assert.match(problems[0].message, /FROM golang:1.21-alpine is outside "1.22" \(go.mod:3 go directive\)/);
+  assert.match(problems[0].message, /FROM golang:1.21-alpine is outside "1.22" \(go.mod:3 go directive \(minimum\)\)/);
 });
 
 test("CI versions are not compared with pins", () => {

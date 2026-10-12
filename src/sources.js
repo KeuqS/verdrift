@@ -244,7 +244,7 @@ function goMod(c, file, text) {
     const [, directive, raw] = m;
     if (directive === "go") {
       c.add(
-        { runtime: "go", file, line: i + 1, where: "go directive", raw, role: "range" },
+        { runtime: "go", file, line: i + 1, where: "go directive (minimum)", raw, role: "range" },
         { set: parseNpmRange(`>=${raw}`) },
       );
     } else if (raw !== "default") {
