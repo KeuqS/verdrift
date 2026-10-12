@@ -1,5 +1,7 @@
 # verdrift
 
+[![ci](https://github.com/thanatchon36/verdrift/actions/workflows/ci.yml/badge.svg)](https://github.com/thanatchon36/verdrift/actions/workflows/ci.yml)
+
 Your `.nvmrc` says 22, your Dockerfile builds on 20, and CI still tests 18. verdrift finds every
 place a repository declares a Node, Python, or Go version and tells you, with file and line,
 where they disagree.
